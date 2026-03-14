@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeGuard — Text Recovery Dashboard</title>
+    <meta name="description" content="TypeGuard local text recovery dashboard. Never lose your typed text again.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Variables ──────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.06);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-indigo: #818cf8;
+            --accent-violet: #a78bfa;
+            --accent-emerald: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-rose: #fb7185;
+            --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-card: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(167, 139, 250, 0.05));
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.15);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Background Ambience ───────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+            z-index: -1;
+            animation: ambientShift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes ambientShift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-2%, -1%) rotate(1deg); }
+        }
+
+        /* ── Layout ────────────────────────────────────────── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* ── Header ────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            padding: 40px 0 30px;
+            position: relative;
+        }
+
+        .header__shield {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: var(--gradient-hero);
+            margin-bottom: 16px;
+            font-size: 28px;
+            box-shadow: var(--shadow-glow);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.4); }
+        }
+
+        .header__title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #c7d2fe, #818cf8, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .header__subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-weight: 400;
+        }
+
+        /* ── Stats Bar ─────────────────────────────────────── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            backdrop-filter: blur(20px);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+        }
+
+        .stat-card__label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-card__value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-card__value--indigo { color: var(--accent-indigo); }
+        .stat-card__value--emerald { color: var(--accent-emerald); }
+        .stat-card__value--amber { color: var(--accent-amber); }
+        .stat-card__value--rose { color: var(--accent-rose); }
+
+        /* ── Progress Bar ──────────────────────────────────── */
+        .progress-container {
+            margin-bottom: 24px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-header__label {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .progress-header__count {
+            font-size: 0.82rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-indigo);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .progress-bar__fill {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--accent-indigo), var(--accent-violet));
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-bar__fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+            border-radius: 100px;
+        }
+
+        /* ── Toolbar ───────────────────────────────────────── */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box__icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .search-box__input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.88rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-box__input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-box__input:focus {
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .btn--danger:hover {
+            border-color: rgba(251, 113, 133, 0.4);
+            color: var(--accent-rose);
+        }
+
+        .btn--copy:hover {
+            border-color: rgba(52, 211, 153, 0.4);
+            color: var(--accent-emerald);
+        }
+
+        /* ── Status Badge ──────────────────────────────────── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge--active {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        .status-badge--paused {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--accent-amber);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .status-badge__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .status-badge--active .status-badge__dot { background: var(--accent-emerald); }
+        .status-badge--paused .status-badge__dot { background: var(--accent-amber); animation: none; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ── Timeline Segments ─────────────────────────────── */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .segment {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .segment:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .segment__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(167, 139, 250, 0.03));
+            border-bottom: 1px solid var(--border);
+        }
+
+        .segment__time {
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-indigo);
+            font-weight: 500;
+        }
+
+        .segment__meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .segment__word-count {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .segment__source-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .segment__source-tag--keyboard {
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent-indigo);
+        }
+
+        .segment__source-tag--clipboard {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--accent-amber);
+        }
+
+        .segment__body {
+            padding: 18px 20px;
+        }
+
+        .segment__text {
+            font-size: 0.92rem;
+            line-height: 1.75;
+            color: var(--text-secondary);
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .segment__text .highlight {
+            background: rgba(251, 191, 36, 0.25);
+            color: var(--accent-amber);
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+
+        .segment__copy-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            transition: var(--transition);
+        }
+
+        .segment__copy-btn:hover {
+            background: rgba(52, 211, 153, 0.1);
+            color: var(--accent-emerald);
+        }
+
+        /* ── Empty State ───────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-state__icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state__title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state__desc {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Toast notifications ───────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-glow);
+            border-radius: var(--radius-sm);
+            color: var(--accent-emerald);
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Footer ────────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            padding: 30px 0 20px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .footer a {
+            color: var(--accent-indigo);
+            text-decoration: none;
+        }
+
+        /* ── Responsive ────────────────────────────────────── */
+        @media (max-width: 600px) {
+            .header__title { font-size: 1.5rem; }
+            .stats-bar { grid-template-columns: 1fr 1fr; }
+            .toolbar { flex-direction: column; }
+            .search-box { min-width: 100%; }
+        }
+
+        /* ── Scrollbar ─────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 100px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ── Header ──────────────────────────────────────── -->
+        <header class="header">
+            <div class="header__shield">🛡️</div>
+            <h1 class="header__title">TypeGuard</h1>
+            <p class="header__subtitle">Your text recovery safety net</p>
+            <div style="margin-top: 14px;">
+                <span id="statusBadge" class="status-badge status-badge--active">
+                    <span class="status-badge__dot"></span>
+                    <span id="statusText">Recording</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- ── Stats ───────────────────────────────────────── -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-card__label">Words Buffered</div>
+                <div class="stat-card__value stat-card__value--indigo" id="statWords">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__label">Segments</div>
+                <div class="stat-card__value stat-card__value--violet" id="statSegments" style="color: var(--accent-violet);">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__label">Database Size</div>
+                <div class="stat-card__value stat-card__value--emerald" id="statDbSize">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__label">Status</div>
+                <div class="stat-card__value stat-card__value--amber" id="statStatus">—</div>
+            </div>
+        </div>
+
+        <!-- ── Progress Bar ────────────────────────────────── -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <span class="progress-header__label">Buffer Usage</span>
+                <span class="progress-header__count" id="progressCount">— / 2,000</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-bar__fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- ── Toolbar ─────────────────────────────────────── -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span class="search-box__icon">🔍</span>
+                <input type="text" class="search-box__input" id="searchInput"
+                       placeholder="Search your typed text..." autocomplete="off">
+            </div>
+            <button class="btn btn--copy" id="btnCopyAll" title="Copy all text">
+                📋 Copy All
+            </button>
+            <button class="btn" id="btnRefresh" title="Refresh now">
+                🔄 Refresh
+            </button>
+            <button class="btn btn--danger" id="btnClear" title="Clear all text">
+                🗑️ Clear
+            </button>
+        </div>
+
+        <!-- ── Timeline ────────────────────────────────────── -->
+        <div class="timeline" id="timeline">
+            <div class="empty-state">
+                <div class="empty-state__icon">⌨️</div>
+                <div class="empty-state__title">No text recorded yet</div>
+                <div class="empty-state__desc">Start typing anywhere and your words will appear here.</div>
+            </div>
+        </div>
+
+        <!-- ── Footer ──────────────────────────────────────── -->
+        <footer class="footer">
+            TypeGuard v1.0 — Your local text safety net &nbsp;|&nbsp;
+            Hotkeys: <code>Ctrl+Shift+P</code> Pause &nbsp;·&nbsp; <code>Ctrl+Shift+R</code> Quick Recovery
+        </footer>
+    </div>
+
+    <!-- ── Toast ───────────────────────────────────────── -->
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        // ── Config ────────────────────────────────────────────
+        const API_BASE = '';
+        const REFRESH_INTERVAL = 3000; // ms
+        let currentSearch = '';
+
+        // ── DOM refs ──────────────────────────────────────────
+        const $timeline      = document.getElementById('timeline');
+        const $statWords      = document.getElementById('statWords');
+        const $statSegments   = document.getElementById('statSegments');
+        const $statDbSize     = document.getElementById('statDbSize');
+        const $statStatus     = document.getElementById('statStatus');
+        const $progressCount  = document.getElementById('progressCount');
+        const $progressFill   = document.getElementById('progressFill');
+        const $statusBadge    = document.getElementById('statusBadge');
+        const $statusText     = document.getElementById('statusText');
+        const $searchInput    = document.getElementById('searchInput');
+        const $btnCopyAll     = document.getElementById('btnCopyAll');
+        const $btnRefresh     = document.getElementById('btnRefresh');
+        const $btnClear       = document.getElementById('btnClear');
+        const $toast          = document.getElementById('toast');
+
+        // ── Helpers ───────────────────────────────────────────
+        function formatTime(ts) {
+            if (!ts) return '—';
+            const d = new Date(ts * 1000);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                 + '  ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function showToast(msg) {
+            $toast.textContent = msg;
+            $toast.classList.add('show');
+            setTimeout(() => $toast.classList.remove('show'), 2200);
+        }
+
+        function highlightText(text, query) {
+            if (!query) return escapeHtml(text);
+            const escaped = escapeHtml(text);
+            const escapedQuery = escapeHtml(query);
+            const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return escaped.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ── Fetch & Render ────────────────────────────────────
+        async function fetchWords() {
+            try {
+                const [wordsRes, statsRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/words`),
+                    fetch(`${API_BASE}/api/stats`),
+                ]);
+                const wordsData = await wordsRes.json();
+                const statsData = await statsRes.json();
+                render(wordsData, statsData);
+            } catch (err) {
+                console.error('Fetch error:', err);
+            }
+        }
+
+        function render(wordsData, statsData) {
+            const { segments, total_words, max_words } = wordsData;
+
+            // Stats
+            $statWords.textContent = total_words.toLocaleString();
+            $statSegments.textContent = segments.length;
+            $statDbSize.textContent = statsData.db_size_mb !== undefined
+                ? statsData.db_size_mb + ' MB' : '—';
+            const isPaused = statsData.is_paused;
+            $statStatus.textContent = isPaused ? 'Paused' : 'Active';
+            $statStatus.style.color = isPaused ? 'var(--accent-amber)' : 'var(--accent-emerald)';
+
+            // Status badge
+            $statusBadge.className = `status-badge status-badge--${isPaused ? 'paused' : 'active'}`;
+            $statusText.textContent = isPaused ? 'Paused' : 'Recording';
+
+            // Progress
+            const pct = max_words > 0 ? Math.round((total_words / max_words) * 100) : 0;
+            $progressCount.textContent = `${total_words.toLocaleString()} / ${max_words.toLocaleString()}`;
+            $progressFill.style.width = pct + '%';
+
+            // Timeline
+            if (segments.length === 0) {
+                $timeline.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state__icon">⌨️</div>
+                        <div class="empty-state__title">No text recorded yet</div>
+                        <div class="empty-state__desc">Start typing anywhere and your words will appear here.</div>
+                    </div>`;
+                return;
+            }
+
+            // Filter by search query
+            let filtered = segments;
+            if (currentSearch) {
+                const q = currentSearch.toLowerCase();
+                filtered = segments.filter(s => s.text.toLowerCase().includes(q));
+            }
+
+            // Render segments (newest first)
+            const reversed = [...filtered].reverse();
+            $timeline.innerHTML = reversed.map(seg => {
+                const timeStr = formatTime(seg.start_time) + (seg.start_time !== seg.end_time
+                    ? ' → ' + formatTime(seg.end_time) : '');
+                const sources = (seg.sources || []).map(s =>
+                    `<span class="segment__source-tag segment__source-tag--${s}">${s}</span>`
+                ).join('');
+                const displayText = highlightText(seg.text, currentSearch);
+
+                return `
+                <div class="segment">
+                    <div class="segment__header">
+                        <span class="segment__time">${timeStr}</span>
+                        <div class="segment__meta">
+                            <span class="segment__word-count">${seg.word_count} words</span>
+                            ${sources}
+                            <button class="segment__copy-btn" onclick="copySegment(this, \`${btoa(encodeURIComponent(seg.text))}\`)">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="segment__body">
+                        <div class="segment__text">${displayText}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ── Actions ───────────────────────────────────────────
+        function copySegment(btn, b64) {
+            const text = decodeURIComponent(atob(b64));
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Segment copied!');
+            });
+        }
+
+        $btnCopyAll.addEventListener('click', async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/text`);
+                const data = await res.json();
+                await navigator.clipboard.writeText(data.text);
+                showToast('All text copied to clipboard!');
+            } catch (err) {
+                showToast('Failed to copy');
+            }
+        });
+
+        $btnRefresh.addEventListener('click', () => {
+            fetchWords();
+            showToast('Refreshed!');
+        });
+
+        $btnClear.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear all recorded text? This cannot be undone.')) return;
+            try {
+                await fetch(`${API_BASE}/api/clear`, { method: 'POST' });
+                showToast('All text cleared');
+                fetchWords();
+            } catch (err) {
+                showToast('Failed to clear');
+            }
+        });
+
+        // ── Search ────────────────────────────────────────────
+        let searchTimeout;
+        $searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearch = $searchInput.value.trim();
+                fetchWords();
+            }, 300);
+        });
+
+        // ── Auto-refresh ──────────────────────────────────────
+        fetchWords();
+        setInterval(fetchWords, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
